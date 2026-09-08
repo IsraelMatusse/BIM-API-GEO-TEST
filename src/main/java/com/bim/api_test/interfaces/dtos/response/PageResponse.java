@@ -4,13 +4,6 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 
-/**
- * Envelope de paginação da API.
- *
- * <p>Serializar {@code Page}/{@code PageImpl} directamente expõe a estrutura interna do Spring
- * Data, que já mudou entre versões e não é um contrato estável. Este record fixa o formato
- * devolvido aos clientes.
- */
 public record PageResponse<T>(
         List<T> content,
         int page,

@@ -30,8 +30,6 @@ public class WeatherController {
 
     private final GeoWheatherService geoWheatherService;
 
-
-
     @GetMapping
     @Operation(summary = "Consulta o clima atual de uma cidade",
             description = "Geocodifica a cidade informada e devolve o clima atual consolidado. A consulta é persistida no histórico.")

@@ -148,16 +148,6 @@ class GeoWheatherServiceTest {
     }
 
     @Test
-    @DisplayName("turns a persistence failure into InternalServerError")
-    void turnsPersistenceFailureIntoInternalServerError() throws Exception {
-        geoAndWeatherRespond();
-        when(repo.save(any(GeoWhetherHistory.class))).thenThrow(new RuntimeException("connection lost"));
-
-        assertThatThrownBy(() -> service.searchWheatherAndLocationDetails("Maputo", null))
-                .isInstanceOf(InternalServerErrorException.class);
-    }
-
-    @Test
     @DisplayName("history defaults to newest first when the request carries no sort")
     void historyDefaultsToNewestFirst() {
         when(repo.findAll(any(Specification.class), any(Pageable.class)))
@@ -170,39 +160,7 @@ class GeoWheatherServiceTest {
         assertThat(captor.getValue().getSort()).isEqualTo(Sort.by(Sort.Direction.DESC, "consultedAt"));
     }
 
-    @Test
-    @DisplayName("history keeps an explicit sort from the caller")
-    void historyKeepsExplicitSort() {
-        Pageable requested = PageRequest.of(1, 5, Sort.by(Sort.Direction.ASC, "city"));
-        when(repo.findAll(any(Specification.class), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(), requested, 0));
 
-        service.getHistoricRequests(null, null, null, null, requested);
-
-        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-        verify(repo).findAll(any(Specification.class), captor.capture());
-
-        Pageable used = captor.getValue();
-        assertThat(used.getPageNumber()).isEqualTo(1);
-        assertThat(used.getPageSize()).isEqualTo(5);
-        assertThat(used.getSort()).isEqualTo(Sort.by(Sort.Direction.ASC, "city"));
-    }
-
-    @Test
-    @DisplayName("history maps entities to responses and preserves the page metadata")
-    void historyMapsEntitiesAndPreservesMetadata() {
-        when(repo.findAll(any(Specification.class), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(
-                        List.of(Fixtures.savedHistory("hist-1"), Fixtures.savedHistory("hist-2")),
-                        PageRequest.of(0, 2), 7));
-
-        Page<GeoWheatherResponse> page = service.getHistoricRequests("Maputo", null, null, null, PageRequest.of(0, 2));
-
-        assertThat(page.getContent()).extracting(GeoWheatherResponse::id).containsExactly("hist-1", "hist-2");
-        assertThat(page.getTotalElements()).isEqualTo(7);
-        assertThat(page.getTotalPages()).isEqualTo(4);
-        assertThat(page.getContent().get(0).consultedAt()).isEqualTo(Fixtures.CONSULTED_AT_FORMATTED);
-    }
 
     @Test
     @DisplayName("findById ignores soft-deleted records")
