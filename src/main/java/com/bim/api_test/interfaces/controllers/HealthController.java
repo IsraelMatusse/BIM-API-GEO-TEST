@@ -1,5 +1,5 @@
 package com.bim.api_test.interfaces.controllers;
-import com.bim.api_test.interfaces.response.HealthResponse;
+import com.bim.api_test.interfaces.dtos.response.HealthResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;

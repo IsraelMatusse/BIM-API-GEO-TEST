@@ -1,7 +1,7 @@
 package com.bim.api_test.infrastructure.exceptions;
 
 import com.bim.api_test.infrastructure.logging.CorrelationIdFilter;
-import com.bim.api_test.interfaces.response.ErrorResponse;
+import com.bim.api_test.interfaces.dtos.response.ErrorResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;

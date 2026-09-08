@@ -1,4 +1,4 @@
-package com.bim.api_test.interfaces.response;
+package com.bim.api_test.interfaces.dtos.response;
 
 public record HealthResponse(
         String status,
