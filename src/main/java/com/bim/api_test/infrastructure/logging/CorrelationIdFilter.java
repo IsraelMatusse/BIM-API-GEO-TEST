@@ -27,6 +27,7 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String correlationId = request.getHeader(CORRELATION_ID_HEADER);
         if (!StringUtils.hasText(correlationId)) {
+            System.out.println("correlationId is empty on request");
             correlationId = UUID.randomUUID().toString();
         }
 

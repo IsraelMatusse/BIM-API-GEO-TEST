@@ -1,7 +1,8 @@
 package com.bim.api_test.interfaces.response;
 
-public record ApiResponse(
+
+public record ErrorResponse(
         String message,
-        Object data
+        String correlationId
 ) {
 }
