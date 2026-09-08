@@ -18,6 +18,6 @@ public class GeoService {
 
 
     public GeocodingResponse getGeoCodeInfo (GeoCodingFilters filters) throws BadGatewayException, BadRequestException, NotFoundException, InternalServerErrorException {
-        return geoApiWebclient.getGeoInfo(filters);
+        return geoApiWebclient.getGeoApiInfo(filters);
     }
 }

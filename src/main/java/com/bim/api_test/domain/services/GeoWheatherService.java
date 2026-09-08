@@ -15,7 +15,6 @@ import com.bim.api_test.integrations.wheatherApi.dtos.WheatherDetailsResponse;
 import com.bim.api_test.interfaces.dtos.response.GeoWheatherResponse;
 
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -25,14 +24,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -66,7 +63,7 @@ public class GeoWheatherService {
 
         logger.info("Início da consulta de clima: city='{}', country='{}'", cityTrimmed, countryTrimmed);
 
-        GeocodingResponse geoResponse = geoApiWebclient.getGeoInfo(
+        GeocodingResponse geoResponse = geoApiWebclient.getGeoApiInfo(
                 new GeoCodingFilters(cityTrimmed, defaultGeoLanguage, defaultGeoCount, defaultGeoFormat));
 
         GeocodingResultDto location = selectLocation(geoResponse.results(), cityTrimmed, countryTrimmed);

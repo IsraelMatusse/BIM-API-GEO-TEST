@@ -36,16 +36,15 @@ public class GeoApiWebclient {
         this.client = client;
     }
 
-
     @Cacheable(
             cacheNames = "geoApi",
             key = "T(com.bim.api_test.integrations.geoApi.GeoApiWebclient).cacheKey(#filters)"
     )
-    public GeocodingResponse getGeoInfo(GeoCodingFilters filters)
+    public GeocodingResponse getGeoApiInfo(GeoCodingFilters filters)
             throws BadRequestException, NotFoundException, BadGatewayException, InternalServerErrorException {
 
         if (!StringUtils.hasText(filters.name())) {
-            logger.warn("[geo-api] PEDIDO REJEITADO | motivo=nome da cidade não informado");
+            logger.warn("[geo-api] REQUISICAO REJEITADA | motivo=nome da cidade não informado");
             throw new BadRequestException("O nome da cidade é obrigatório para a busca");
         }
 

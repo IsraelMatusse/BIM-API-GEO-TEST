@@ -3,7 +3,6 @@ package com.bim.api_test.domain.services;
 import com.bim.api_test.domain.entities.GeoWhetherHistory;
 import com.bim.api_test.domain.repositories.GeoWheatherRepo;
 import com.bim.api_test.infrastructure.exceptions.BadRequestException;
-import com.bim.api_test.infrastructure.exceptions.InternalServerErrorException;
 import com.bim.api_test.infrastructure.exceptions.NotFoundException;
 import com.bim.api_test.integrations.geoApi.GeoApiWebclient;
 import com.bim.api_test.integrations.geoApi.dtos.filters.GeoCodingFilters;
@@ -19,7 +18,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -70,7 +68,7 @@ class GeoWheatherServiceTest {
     }
 
     private void geoAndWeatherRespond() throws Exception {
-        when(geoApiWebclient.getGeoInfo(any()))
+        when(geoApiWebclient.getGeoApiInfo(any()))
                 .thenReturn(new GeocodingResponse(List.of(Fixtures.maputo()), 1.0));
         when(wheaterApiWebClient.getCurrentWeather(anyDouble(), anyDouble())).thenReturn(Fixtures.weather());
     }
@@ -94,7 +92,7 @@ class GeoWheatherServiceTest {
         service.searchWheatherAndLocationDetails("  Maputo  ", null);
 
         ArgumentCaptor<GeoCodingFilters> captor = ArgumentCaptor.forClass(GeoCodingFilters.class);
-        verify(geoApiWebclient).getGeoInfo(captor.capture());
+        verify(geoApiWebclient).getGeoApiInfo(captor.capture());
 
         GeoCodingFilters filters = captor.getValue();
         assertThat(filters.name()).isEqualTo("Maputo");
@@ -123,7 +121,7 @@ class GeoWheatherServiceTest {
     @Test
     @DisplayName("picks the candidate matching the country, not simply the first result")
     void filtersCandidatesByCountry() throws Exception {
-        when(geoApiWebclient.getGeoInfo(any()))
+        when(geoApiWebclient.getGeoApiInfo(any()))
                 .thenReturn(new GeocodingResponse(List.of(Fixtures.lisbon(), Fixtures.maputo()), 1.0));
         when(wheaterApiWebClient.getCurrentWeather(anyDouble(), anyDouble())).thenReturn(Fixtures.weather());
         repoSaveReturnsEntityWithId("hist-1");
@@ -136,7 +134,7 @@ class GeoWheatherServiceTest {
     @Test
     @DisplayName("throws NotFound when no candidate matches the country")
     void throwsNotFoundWhenNoCandidateMatchesCountry() throws Exception {
-        when(geoApiWebclient.getGeoInfo(any()))
+        when(geoApiWebclient.getGeoApiInfo(any()))
                 .thenReturn(new GeocodingResponse(List.of(Fixtures.lisbon()), 1.0));
 
         assertThatThrownBy(() -> service.searchWheatherAndLocationDetails("Lisboa", "MZ"))
