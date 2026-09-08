@@ -8,13 +8,10 @@ import com.bim.api_test.integrations.wheatherApi.dtos.WheatherDetailsResponse;
 
 import java.time.Instant;
 
-/** Shared test data. Keeps the 18-argument constructors out of the test classes. */
 public final class Fixtures {
 
-    /** 07:00 UTC, which is 09:00 in Africa/Maputo (UTC+2, no DST). */
     public static final Instant CONSULTED_AT = Instant.parse("2026-09-08T07:00:00Z");
 
-    /** How GeoWheatherResponse renders CONSULTED_AT for a record whose timeZone is Africa/Maputo. */
     public static final String CONSULTED_AT_FORMATTED = "08-09-2026 09:00";
 
     public static final double MAPUTO_LATITUDE = -25.96553;
@@ -48,7 +45,6 @@ public final class Fixtures {
                 new WheatherCurrentResponse("2026-09-08T09:00", 900.0, 27.4, 68, 29.1, 3, 11.2));
     }
 
-    /** The entity as it looks once persisted: with an id and a fixed consultedAt. */
     public static GeoWhetherHistory savedHistory(String id) {
         GeoWhetherHistory history = new GeoWhetherHistory(maputo(), weather());
         history.setId(id);

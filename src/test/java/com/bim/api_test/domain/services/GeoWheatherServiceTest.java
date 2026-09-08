@@ -56,14 +56,11 @@ class GeoWheatherServiceTest {
 
     @BeforeEach
     void injectConfiguredDefaults() {
-        // These are @Value fields, so Mockito leaves them null. defaultGeoCount in particular
-        // would blow up on unboxing into the int component of GeoCodingFilters.
         service.defaultGeoLanguage = "pt";
         service.defaultGeoFormat = "json";
         service.defaultGeoCount = 10;
     }
 
-    /** Mirrors what JPA save does: returns the same instance, now with an id. */
     private void repoSaveReturnsEntityWithId(String id) {
         when(repo.save(any(GeoWhetherHistory.class))).thenAnswer(invocation -> {
             GeoWhetherHistory entity = invocation.getArgument(0);
