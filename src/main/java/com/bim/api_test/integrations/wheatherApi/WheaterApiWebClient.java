@@ -18,6 +18,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 
 @Component
 public class WheaterApiWebClient {
@@ -38,13 +39,14 @@ public class WheaterApiWebClient {
 
     @Cacheable(
             cacheNames = "weatherApi",
-            key = "T(String).format('%.4f|%.4f', #latitude, #longitude)"
+            key = "T(com.bim.api_test.integrations.wheatherApi.WheaterApiWebClient).cacheKey(#latitude, #longitude)"
     )
     public WheatherDetailsResponse getCurrentWeather(double latitude, double longitude)
             throws BadGatewayException, InternalServerErrorException {
 
+        String ctx = String.format(Locale.ROOT, "lat=%.4f lon=%.4f", latitude, longitude);
         Instant start = Instant.now();
-        logger.info("Iniciando consulta à Weather Forecast API para latitude={}, longitude={}", latitude, longitude);
+        logger.info("[weather-api] INÍCIO | {}", ctx);
 
         URI uri = UriComponentsBuilder.fromUriString(config.wheatherBaseUrl)
                 .path(config.wheatherForecastUrl)
@@ -63,19 +65,18 @@ public class WheaterApiWebClient {
                     .toEntity(WheatherDetailsResponse.class)
                     .block();
         } catch (WebClientResponseException ex) {
-            long elapsed = elapsedMs(start);
-            logger.error("Weather API respondeu com erro HTTP {} após {} ms: {}",
-                    ex.getStatusCode(), elapsed, ex.getResponseBodyAsString(), ex);
+            logger.error("[weather-api] FALHA HTTP | status={} | elapsed={}ms | {} | body={}",
+                    ex.getStatusCode(), elapsedMs(start), ctx, shortBody(ex.getResponseBodyAsString()));
             throw new BadGatewayException("Não foi possível consultar o serviço meteorológico.");
         } catch (DecodingException ex) {
-            logger.error("Weather API retornou um payload em formato inesperado após {} ms", elapsedMs(start), ex);
+            logger.error("[weather-api] FALHA DE PAYLOAD | elapsed={}ms | {}", elapsedMs(start), ctx, ex);
             throw new BadGatewayException("O serviço meteorológico devolveu uma resposta em formato inesperado.");
         } catch (WebClientRequestException ex) {
-            logger.error("Falha de comunicação com a Weather API após {} ms (timeout ou conexão recusada)",
-                    elapsedMs(start), ex);
+            logger.error("[weather-api] FALHA DE COMUNICAÇÃO | elapsed={}ms | {} | causa={}",
+                    elapsedMs(start), ctx, ex.getMostSpecificCause());
             throw new BadGatewayException("Falha de comunicação ao consultar o serviço meteorológico.");
         } catch (Exception ex) {
-            logger.error("Erro inesperado ao consultar a Weather API após {} ms", elapsedMs(start), ex);
+            logger.error("[weather-api] FALHA INESPERADA | elapsed={}ms | {}", elapsedMs(start), ctx, ex);
             throw new InternalServerErrorException("Erro inesperado ao consultar a Weather API");
         }
 
@@ -83,13 +84,26 @@ public class WheaterApiWebClient {
         WheatherDetailsResponse body = response != null ? response.getBody() : null;
 
         if (body == null || body.current() == null || body.currentUnits() == null) {
-            logger.error("Weather API devolveu uma resposta vazia/incompleta após {} ms", elapsed);
+            logger.error("[weather-api] RESPOSTA INCOMPLETA | elapsed={}ms | {} | body={} current={} units={}",
+                    elapsed, ctx, body != null,
+                    body != null && body.current() != null,
+                    body != null && body.currentUnits() != null);
             throw new BadGatewayException("O serviço meteorológico devolveu uma resposta incompleta.");
         }
 
-        logger.info("Weather API respondeu com sucesso em {} ms (timezone={})", elapsed, body.timezone());
+        logger.info("[weather-api] OK | elapsed={}ms | {} | timezone={}", elapsed, ctx, body.timezone());
 
         return body;
+    }
+
+    public static String cacheKey(double latitude, double longitude) {
+        return String.format(Locale.ROOT, "%.4f|%.4f", latitude, longitude);
+    }
+
+    private static String shortBody(String body) {
+        String flat = body == null ? "" : body.replaceAll("\\s+", " ").trim();
+        if (flat.isEmpty()) return "<vazio>";
+        return flat.length() <= 300 ? flat : flat.substring(0, 300) + "...";
     }
 
     private long elapsedMs(Instant start) {

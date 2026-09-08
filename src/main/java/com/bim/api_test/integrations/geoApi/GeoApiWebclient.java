@@ -21,6 +21,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 
 @Component
 public class GeoApiWebclient {
@@ -38,24 +39,24 @@ public class GeoApiWebclient {
 
     @Cacheable(
             cacheNames = "geoApi",
-            key = "#filters.name().trim().toLowerCase() + '|' + #filters.language() + '|' + #filters.count() + '|' + #filters.format()"
+            key = "T(com.bim.api_test.integrations.geoApi.GeoApiWebclient).cacheKey(#filters)"
     )
     public GeocodingResponse getGeoInfo(GeoCodingFilters filters)
             throws BadRequestException, NotFoundException, BadGatewayException, InternalServerErrorException {
 
         if (!StringUtils.hasText(filters.name())) {
-            logger.error("Busca na Geo API rejeitada: parametro cidade não informado");
+            logger.warn("[geo-api] PEDIDO REJEITADO | motivo=nome da cidade não informado");
             throw new BadRequestException("O nome da cidade é obrigatório para a busca");
         }
 
         String city = filters.name().trim();
+        String ctx = "cidade='" + city + "' language=" + filters.language() + " count=" + filters.count();
         Instant start = Instant.now();
-        logger.info("Iniciando consulta à Geo API com os parametros: '{}' (language={}, count={})",
-                city, filters.language(), filters.count());
+        logger.info("[geo-api] INÍCIO | {}", ctx);
 
         URI uri = UriComponentsBuilder.fromUriString(config.geoBaseUrl)
                 .path(config.geoSearchUrl)
-                .queryParam("name", filters.name())
+                .queryParam("name", city)
                 .queryParam("count", filters.count())
                 .queryParam("language", filters.language())
                 .queryParam("format", filters.format())
@@ -70,42 +71,54 @@ public class GeoApiWebclient {
                     .toEntity(GeocodingResponse.class)
                     .block();
         } catch (WebClientResponseException ex) {
-            long elapsed = elapsedMs(start);
-            logger.error("Geo API respondeu com erro HTTP {} para '{}' após {} ms: {}",
-                    ex.getStatusCode(), city, elapsed, ex.getResponseBodyAsString(), ex);
+            logger.error("[geo-api] FALHA HTTP | status={} | elapsed={}ms | {} | body={}",
+                    ex.getStatusCode(), elapsedMs(start), ctx, shortBody(ex.getResponseBodyAsString()));
             throw new BadGatewayException("Não foi possível consultar o serviço de geocodificação.");
         } catch (DecodingException ex) {
-            logger.error("Geo API retornou um payload em formato inesperado para '{}' após {} ms",
-                    city, elapsedMs(start), ex);
+            logger.error("[geo-api] FALHA DE PAYLOAD | elapsed={}ms | {}", elapsedMs(start), ctx, ex);
             throw new BadGatewayException("O serviço de geocodificação devolveu uma resposta em formato inesperado.");
         } catch (WebClientRequestException ex) {
-            logger.error("Falha de comunicação com a Geo API para '{}' após {} ms ",
-                    city, elapsedMs(start), ex);
+            logger.error("[geo-api] FALHA DE COMUNICAÇÃO | elapsed={}ms | {} | causa={}",
+                    elapsedMs(start), ctx, ex.getMostSpecificCause());
             throw new BadGatewayException("Falha de comunicação ao consultar o serviço de geocodificação.");
         } catch (Exception ex) {
-            logger.error("Erro inesperado ao consultar a Geo API para '{}' após {} ms",
-                    city, elapsedMs(start), ex);
+            logger.error("[geo-api] FALHA INESPERADA | elapsed={}ms | {}", elapsedMs(start), ctx, ex);
             throw new InternalServerErrorException("Erro inesperado ao consultar a Geo API");
         }
 
-        //terminou a consulta
         long elapsed = elapsedMs(start);
         GeocodingResponse body = response != null ? response.getBody() : null;
 
         if (body == null || body.results() == null) {
-            logger.error("Geo API devolveu uma resposta vazia ou incompleta para '{}' após {} ms", city, elapsed);
+            logger.error("[geo-api] RESPOSTA INCOMPLETA | elapsed={}ms | {} | em falta={}",
+                    elapsed, ctx, body == null ? "corpo" : "results");
             throw new BadGatewayException("O serviço de geocodificação devolveu uma resposta incompleta.");
         }
 
         if (body.results().isEmpty()) {
-            logger.warn("Geo API não retornou resultados para '{}' (concluído em {} ms)", city, elapsed);
+            logger.warn("[geo-api] SEM RESULTADOS | elapsed={}ms | {}", elapsed, ctx);
             throw new NotFoundException("Nenhuma cidade encontrada para '" + city + "'");
         }
 
-        logger.info("Geo API retornou {} resultado(s) para '{}' em {} ms",
-                body.results().size(), city, elapsed);
+        logger.info("[geo-api] OK | elapsed={}ms | {} | resultados={}", elapsed, ctx, body.results().size());
 
         return body;
+    }
+
+    public static String cacheKey(GeoCodingFilters filters) {
+        return String.join("|",
+                norm(filters.name()), norm(filters.language()),
+                String.valueOf(filters.count()), norm(filters.format()));
+    }
+
+    private static String norm(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static String shortBody(String body) {
+        String flat = body == null ? "" : body.replaceAll("\\s+", " ").trim();
+        if (flat.isEmpty()) return "<vazio>";
+        return flat.length() <= 300 ? flat : flat.substring(0, 300) + "...";
     }
 
     private long elapsedMs(Instant start) {
